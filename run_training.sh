@@ -1,42 +1,28 @@
-# Model Configuration
-model:
-  d_model: 768
-  n_heads: 12
-  n_layers: 12
-  d_ff: 3072
-  max_seq_len: 512
-  dropout: 0.1
-  vocab_size: null  # Will be set based on tokenizer
+#!/bin/bash
 
-# Training Configuration
-training:
-  epochs: 10
-  batch_size: 8
-  learning_rate: 0.0005
-  weight_decay: 0.01
-  gradient_clip: 1.0
-  warmup_steps: 1000
-  save_steps: 500
-  eval_steps: 250
+# Create directories
+mkdir -p data models logs checkpoints
 
-# Data Configuration
-data:
-  max_length: 512
-  train_split: 0.8
-  val_split: 0.1
-  test_split: 0.1
+# 1. Create sample training data
+echo "Creating sample training data..."
+python prepare_data.py --create_sample --output_file data/training_data.json
 
-# Generation Configuration
-generation:
-  max_length: 100
-  temperature: 0.7
-  top_k: 50
-  top_p: 0.9
-  repetition_penalty: 1.1
+# 2. Train the model
+echo "Starting model training..."
+python train_model.py \
+    --data_path data/training_data.json \
+    --model_save_path models/chatbot \
+    --epochs 10 \
+    --batch_size 8 \
+    --learning_rate 0.0005 \
+    --d_model 512 \
+    --n_heads 8 \
+    --n_layers 6
 
-# Paths
-paths:
-  data_dir: "./data"
-  model_dir: "./models"
-  logs_dir: "./logs"
-  checkpoints_dir: "./checkpoints"
+# 3. Start the API server
+echo "Starting API server..."
+MODEL_PATH=./models/chatbot python inference_api.py
+
+echo "Training and deployment complete!"
+echo "API available at: http://localhost:8000"
+echo "Dashboard available at: dashboard.html"
