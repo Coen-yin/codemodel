@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Training Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #666;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .card h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 24px;
+        }
+
+        .training-section {
+            grid-column: 1 / -1;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #eee;
+            border-radius: 8px;
+            font-size: 16px;
+            font-family: inherit;
+        }
+
+        .form-group textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 16px;
+            transition: transform 0.2s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .status {
+            padding: 10px 15px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .chat-interface {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            background: #f8f9fa;
+        }
+
+        .message {
+            margin-bottom: 15px;
+            padding: 10px;
+            border-radius: 8px;
+        }
+
+        .user-message {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            margin-left: 20%;
+        }
+
+        .bot-message {
+            background: white;
+            border: 1px solid #eee;
+            margin-right: 20%;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin-top: 20px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .stat-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        @media (max-width: 768px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🤖 AI Training Dashboard</h1>
+            <p>Train and monitor your custom AI chatbot model</p>
+        </div>
+
+        <div class="dashboard-grid">
+            <!-- Training Data Section -->
+            <div class="card">
+                <h2>📚 Training Data</h2>
+                <div id="dataStatus" class="status info">
+                    Ready to add training data
+                </div>
+                
+                <form id="trainingForm">
+                    <div class="form-group">
+                        <label for="userInput">User Input:</label>
+                        <textarea id="userInput" placeholder="What the user might say..." required></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="botOutput">Bot Response:</label>
+                        <textarea id="botOutput" placeholder="How the bot should respond..." required></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="category">Category:</label>
+                        <select id="category">
+                            <option value="general">General</option>
+                            <option value="greeting">Greeting</option>
+                            <option value="support">Support</option>
+                            <option value="programming">Programming</option>
+                            <option value="entertainment">Entertainment</option>
+                        </select>
+                    </div>
+                    
+                    <button type="submit" class="btn">Add Training Data</button>
+                </form>
+
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-number" id="totalExamples">0</div>
+                        <div class="stat-label">Total Examples</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" id="categories">0</div>
+                        <div class="stat-label">Categories</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Model Training Section -->
+            <div class="card">
+                <h2>🚀 Model Training</h2>
+                <div id="trainingStatus" class="status info">
+                    Ready to start training
+                </div>
+
+                <div class="form-group">
+                    <label for="epochs">Training Epochs:</label>
+                    <input type="number" id="epochs" value="10" min="1" max="100">
+                </div>
+
+                <div class="form-group">
+                    <label for="learningRate">Learning Rate:</label>
+                    <input type="number" id="learningRate" value="0.0005" step="0.0001" min="0.0001" max="0.01">
+                </div>
+
+                <div class="form-group">
+                    <label for="batchSize">Batch Size:</label>
+                    <select id="batchSize">
+                        <option value="4">4</option>
+                        <option value="8" selected>8</option>
+                        <option value="16">16</option>
+                        <option value="32">32</option>
+                    </select>
+                </div>
+
+                <button id="startTraining" class="btn">Start Training</button>
+                <button id="stopTraining" class="btn" disabled>Stop Training</button>
+
+                <div class="chart-container">
+                    <canvas id="trainingChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Chat Testing Section -->
+            <div class="card training-section">
+                <h2>💬 Test Your Model</h2>
+                <div class="chat-interface" id="chatInterface">
+                    <div class="message bot-message">
+                        <strong>AI:</strong> Hello! I'm your custom trained AI. Try chatting with me!
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <input type="text" id="chatInput" placeholder="Type your message..." 
+                           onkeypress="handleChatKeyPress(event)">
+                    <button onclick="sendMessage()" class="btn" style="margin-top: 10px;">Send Message</button>
+                </div>
+
+                <div class="form-group">
+                    <label>Generation Settings:</label>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
+                        <div>
+                            <label for="temperature">Temperature:</label>
+                            <input type="range" id="temperature" min="0.1" max="2" step="0.1" value="0.7">
+                            <span id="tempValue">0.7</span>
+                        </div>
+                        <div>
+                            <label for="topK">Top-K:</label>
+                            <input type="range" id="topK" min="1" max="100" step="1" value="50">
+                            <span id="topKValue">50</span>
+                        </div>
+                        <div>
+                            <label for="topP">Top-P:</label>
+                            <input type="range" id="topP" min="0.1" max="1" step="0.1" value="0.9">
+                            <span id="topPValue">0.9</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let trainingData = [];
+        let trainingChart = null;
+        let isTraining = false;
+
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeChart();
+            loadTrainingData();
+            setupEventListeners();
+            updateSliderValues();
+        });
+
+        function setupEventListeners() {
+            // Training form
+            document.getElementById('trainingForm').addEventListener('submit', handleTrainingSubmit);
+            
+            // Training controls
+            document.getElementById('startTraining').addEventListener('click', startTraining);
+            document.getElementById('stopTraining').addEventListener('click', stopTraining);
+            
+            // Slider updates
+            document.getElementById('temperature').addEventListener('input', updateSliderValues);
+            document.getElementById('topK').addEventListener('input', updateSliderValues);
+            document.getElementById('topP').addEventListener('input', updateSliderValues);
+        }
+
+        function updateSliderValues() {
+            document.getElementById('tempValue').textContent = document.getElementById('temperature').value;
+            document.getElementById('topKValue').textContent = document.getElementById('topK').value;
+            document.getElementById('topPValue').textContent = document.getElementById('topP').value;
+        }
+
+        function initializeChart() {
+            const ctx = document.getElementById('trainingChart').getContext('2d');
+            trainingChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Training Loss',
+                        data: [],
+                        borderColor: 'rgb(102, 126, 234)',
+                        backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                        tension: 0.1
+                    }, {
+                        label: 'Validation Loss',
+                        data: [],
+                        borderColor: 'rgb(118, 75, 162)',
+                        backgroundColor: 'rgba(118, 75, 162, 0.1)',
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Loss'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Epoch'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function handleTrainingSubmit(e) {
+            e.preventDefault();
+            
+            const userInput = document.getElementById('userInput').value.trim();
+            const botOutput = document.getElementById('botOutput').value.trim();
+            const category = document.getElementById('category').value;
+
+            if (!userInput || !botOutput) {
+                showStatus('dataStatus', 'Please fill in both input and output fields', 'error');
+                return;
+            }
+
+            // Add to training data
+            const newExample = {
+                input: userInput,
+                output: botOutput,
+                category: category,
+                timestamp: new Date().toISOString()
+            };
+
+            trainingData.push(newExample);
+            saveTrainingData();
+            
+            // Clear form
+            document.getElementById('trainingForm').reset();
+            
+            // Update UI
+            updateTrainingStats();
+            showStatus('dataStatus', `Added training example! Total: ${trainingData.length}`, 'success');
+        }
+
+        function saveTrainingData() {
+            localStorage.setItem('trainingData', JSON.stringify(trainingData));
+        }
+
+        function loadTrainingData() {
+            const saved = localStorage.getItem('trainingData');
+            if (saved) {
+                trainingData = JSON.parse(saved);
+                updateTrainingStats();
+            }
+        }
+
+        function updateTrainingStats() {
+            document.getElementById('totalExamples').textContent = trainingData.length;
+            
+            const categories = new Set(trainingData.map(d => d.category));
+            document.getElementById('categories').textContent = categories.size;
+        }
+
+        async function startTraining() {
+            if (trainingData.length < 5) {
+                showStatus('trainingStatus', 'Need at least 5 training examples to start training', 'error');
+                return;
+            }
+
+            isTraining = true;
+            document.getElementById('startTraining').disabled = true;
+            document.getElementById('stopTraining').disabled = false;
+            
+            showStatus('trainingStatus', 'Training started...', 'info');
+
+            // Simulate training process (replace with actual API calls)
+            const epochs = parseInt(document.getElementById('epochs').value);
+            
+            for (let epoch = 0; epoch < epochs && isTraining; epoch++) {
+                await simulateTrainingEpoch(epoch + 1, epochs);
+                await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate training time
+            }
+
+            if (isTraining) {
+                showStatus('trainingStatus', 'Training completed successfully!', 'success');
+            }
+
+            isTraining = false;
+            document.getElementById('startTraining').disabled = false;
+            document.getElementById('stopTraining').disabled = true;
+        }
+
+        function stopTraining() {
+            isTraining = false;
+            showStatus('trainingStatus', 'Training stopped by user', 'info');
+            document.getElementById('startTraining').disabled = false;
+            document.getElementById('stopTraining').disabled = true;
+        }
+
+        async function simulateTrainingEpoch(epoch, totalEpochs) {
+            // Simulate decreasing loss
+            const trainLoss = Math.max(0.1, 3.0 * Math.exp(-0.3 * epoch) + Math.random() * 0.2);
+            const valLoss = Math.max(0.1, 3.2 * Math.exp(-0.25 * epoch) + Math.random() * 0.3);
+
+            // Update chart
+            trainingChart.data.labels.push(`Epoch ${epoch}`);
+            trainingChart.data.datasets[0].data.push(trainLoss);
+            trainingChart.data.datasets[1].data.push(valLoss);
+            trainingChart.update();
+
+            // Update status
+            showStatus('trainingStatus', 
+                `Training Epoch ${epoch}/${totalEpochs} - Train Loss: ${trainLoss.toFixed(4)}, Val Loss: ${valLoss.toFixed(4)}`, 
+                'info');
+        }
+
+        function handleChatKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('chatInput');
+            const message = input.value.trim();
+            
+            if (!message) return;
+
+            // Add user message to chat
+            addMessageToChat(message, 'user');
+            input.value = '';
+
+            // Get generation settings
+            const temperature = parseFloat(document.getElementById('temperature').value);
+            const topK = parseInt(document.getElementById('topK').value);
+            const topP = parseFloat(document.getElementById('topP').value);
+
+            // Simulate bot response (replace with actual model inference)
+            const response = await simulateBotResponse(message, temperature, topK, topP);
+            addMessageToChat(response, 'bot');
+        }
+
+        function addMessageToChat(message, sender) {
+            const chatInterface = document.getElementById('chatInterface');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender}-message`;
+            
+            const prefix = sender === 'user' ? 'You' : 'AI';
+            messageDiv.innerHTML = `<strong>${prefix}:</strong> ${message}`;
+            
+            chatInterface.appendChild(messageDiv);
+            chatInterface.scrollTop = chatInterface.scrollHeight;
+        }
+
+        async function simulateBotResponse(message, temperature, topK, topP) {
+            // Simple rule-based responses for demo
+            const responses = {
+                'hello': 'Hello! How can I help you today?',
+                'hi': 'Hi there! What would you like to chat about?',
+                'how are you': 'I\'m doing well, thank you for asking!',
+                'what is your name': 'I\'m your custom trained AI chatbot!',
+                'bye': 'Goodbye! It was nice chatting with you!',
+                'thank you': 'You\'re welcome! Happy to help!',
+                'help': 'I\'m here to help! What do you need assistance with?'
+            };
+
+            const lowerMessage = message.toLowerCase();
+            
+            // Check for exact matches
+            for (const [key, response] of Object.entries(responses)) {
+                if (lowerMessage.includes(key)) {
+                    return response;
+                }
+            }
+
+            // Check training data for similar inputs
+            for (const example of trainingData) {
+                if (example.input.toLowerCase().includes(lowerMessage) || 
+                    lowerMessage.includes(example.input.toLowerCase())) {
+                    return example.output;
+                }
+            }
+
+            // Default response with generation settings info
+            return `I received your message: "${message}". I'm still learning from the ${trainingData.length} examples you've provided. (Generated with temp=${temperature}, top-k=${topK}, top-p=${topP})`;
+        }
+
+        function showStatus(elementId, message, type) {
+            const element = document.getElementById(elementId);
+            element.textContent = message;
+            element.className = `status ${type}`;
+        }
+
+        // Export training data function
+        function exportTrainingData() {
+            const dataStr = JSON.stringify(trainingData, null, 2);
+            const dataBlob = new Blob([dataStr], {type: 'application/json'});
+            const url = URL.createObjectURL(dataBlob);
+            
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'training_data.json';
+            link.click();
+        }
+
+        // Add export button (you can add this to the HTML if needed)
+        function addExportButton() {
+            const button = document.createElement('button');
+            button.textContent = 'Export Training Data';
+            button.className = 'btn';
+            button.onclick = exportTrainingData;
+            document.querySelector('.card').appendChild(button);
+        }
+    </script>
+</body>
+</html>
